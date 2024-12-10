@@ -105,7 +105,7 @@ internal class Program
         return [.. diskMap];
     }
 
-    static IEnumerable<(int Index, int Length)> GetFreeSpans(List<int> diskMap)
+    static List<(int Index, int Length)> GetFreeSpans(List<int> diskMap)
     {
         var result = new List<(int Index, int Length)>();
 
