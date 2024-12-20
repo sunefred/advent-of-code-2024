@@ -1,4 +1,6 @@
-﻿namespace Day01;
+﻿using System.Text.RegularExpressions;
+
+namespace Day01;
 
 internal class Program
 {
@@ -10,18 +12,40 @@ internal class Program
          */
 
         var input = File.ReadAllText("Data/sample.txt");
+        var matches = Regex.Matches(input, @"(\d+)\s+(\d+)");
 
-        Console.WriteLine(Part1(input));
-        Console.WriteLine(Part2(input));
+        var pairs = matches
+            .Select(x => (x.Groups[1].Value, x.Groups[2].Value))
+            .Select(x => (int.Parse(x.Item1), int.Parse(x.Item2)))
+            .ToArray();
+
+        Console.WriteLine(Part1(pairs));
+        Console.WriteLine(Part2(pairs));
     }
 
-    static string Part1(string input)
+    public static int Part1(IEnumerable<(int, int)> pairs)
     {
-        return input;
+        var firsts = pairs.Select(x => x.Item1).Order();
+        var seconds = pairs.Select(x => x.Item2).Order();
+
+        var score = Enumerable.Zip(firsts, seconds)
+            .Select(x => Math.Abs(x.First - x.Second))
+            .Sum();
+
+        return score;
     }
 
-    static string Part2(string input)
+    public static int Part2(IEnumerable<(int, int)> pairs)
     {
-        return input;
+        var firsts = pairs.Select(x => x.Item1).Order();
+        var seconds = pairs.Select(x => x.Item2)
+            .GroupBy(x => x)
+            .ToDictionary(x => x.Key, x => x.Count());
+
+        var score = firsts
+            .Select(first => first * (seconds.TryGetValue(first, out var second) ? second : 0))
+            .Sum();
+
+        return score;
     }
 }
