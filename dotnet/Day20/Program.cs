@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Numerics;
 
 internal class Program
 { 
@@ -22,37 +23,35 @@ internal class Program
 
     static void Main()
     {
-        var lines = File.ReadLines("Data/sample.txt");
+        /**
+         * Settings for max cheat length and required savings
+         *
+         *              sample.txt  input.txt
+         *              ----------  ----------
+         * Part 1:       2/1         2/100
+         * Part 2:      20/50       20/100
+         */
+
+        var maxCheatLength = 20;
+        var requiredSavings = 100;
+
+        var lines = File.ReadLines("Data/input.txt");
         var grid = lines.Select(l => l.ToCharArray()).ToArray();
 
-        // Console.WriteLine(Part1(grid));
-        Console.WriteLine(Part2(grid));
+        Console.WriteLine(Part1And2(grid, maxCheatLength, requiredSavings));
     }
 
-    static int Part1(char[][] grid)
+    static int Part1And2(char[][] grid, int maxCheatLength, int requiredSavings)
     {
-        var start = FindTheThing(grid, 'S');
-        var end = FindTheThing(grid, 'E');
+        var start = FindStart(grid);
         var nodes = NodesFromGrid(grid);
         var outgoingEdges = GetOutgoingEdges(nodes);   
         var costs = Dijkstra(nodes, outgoingEdges, start);
+        var cheats = FindCheats(nodes, costs, maxCheatLength, requiredSavings);
 
-        List<(Vector2 From, Vector2 To, int Savings)> cheats = [];
-        var requiredSavings = 1;
-
-        foreach (var from in nodes)
+        foreach (var (From, To, Savings) in cheats.OrderBy(c => c.Savings))
         {
-            foreach (var to in nodes)
-            {
-                var d = to - from;
-                var savings = costs[to] - costs[from] - 2;
-                var manhattan = Math.Abs(d.X) + Math.Abs(d.Y);
-
-                if (manhattan == 2 && savings >= requiredSavings)
-                {
-                    cheats.Add((from, to, savings));
-                }
-            }
+            Console.WriteLine($"From {From} to {To} with savings of {Savings}");
         }
 
         foreach (var group in cheats.GroupBy(c => c.Savings).OrderBy(g => g.Key))
@@ -62,81 +61,34 @@ internal class Program
 
         PrintGridWithCosts(grid, costs);
 
+        Console.WriteLine($"There are {cheats.Count} cheats, cheat length is {maxCheatLength}, required savings is {requiredSavings}"); 
         return cheats.Count;
     }
 
-    static int Part2(char[][] grid)
+    static List<(Vector2 From, Vector2 To, int Savings)> FindCheats(HashSet<Vector2> nodes, Dictionary<Vector2, int> costs, int maxCheatLength, int requiredSavings)
     {
-        var start = FindTheThing(grid, 'S');
-        var end = FindTheThing(grid, 'E');
-        var nodes = NodesFromGrid(grid);
-        var outgoingEdges = GetOutgoingEdges(nodes);   
-        var costs = Dijkstra(nodes, outgoingEdges, start);
-
-        List<(Vector2 From, Vector2 To, int Savings)> cheats = [];
-        var requiredSavings = 10;
-
-        var from1 = new Vector2(7, 1);
-        var to1 = new Vector2(1, 3);
-        var savings1 = costs[from1] - costs[to1] - 2;
+        var cheats = new List<(Vector2 From, Vector2 To, int Savings)>();
 
         foreach (var from in nodes)
         {
             foreach (var to in nodes)
             {
                 var d = to - from;
-                var savings = costs[to] - costs[from] - 2;
                 var manhattan = Math.Abs(d.X) + Math.Abs(d.Y);
+                var savings = costs[to] - costs[from] - manhattan;
 
-                if (manhattan <= 20 && savings >= requiredSavings)
+                if (manhattan <= maxCheatLength && savings >= requiredSavings)
                 {
                     cheats.Add((from, to, savings));
                 }
             }
         }
-        
-        foreach (var cheat in cheats.Where(c => c.Savings == 10))
-        {
-            Console.WriteLine($"{cheat.From} -> {cheat.To} ({cheat.Savings})");
-        }   
 
-        foreach (var group in cheats.GroupBy(c => c.Savings).OrderBy(g => g.Key))
-        {
-            Console.WriteLine($"There are {group.Count()} cheats with savings of {group.Key}");
-        }
-
-        PrintGridWithCosts(grid, costs);
-
-        return cheats.Count;
+        return cheats;
     }
 
     static Dictionary<Vector2, int> Dijkstra(HashSet<Vector2> nodes, ILookup<Vector2, Edge> outgoingEdges, Vector2 start)
     {
-        /**
-         * This is Dijkstra's algorithm. Given a starting point, find the lowest "cost" to reach each
-         * node in the graph.
-         *
-         * Initialize:
-         * ~~~~~~~~~~~~
-         * - Create a "cost" table to hold the optimum for each node
-         * - Init the cost of the start node to 0, others to infinity
-         * - Create a priority queue "unvisited" to hold a working set of nodes to visit
-         * - Init the queue with the start node
-         *
-         * Loop:
-         * ~~~~~
-         * - Pop the node with the smallest cost from the unvisited set
-         * - For each neighbor of the current node:
-         *   - Calculate cost through the current node
-         *   - Update cost of neighbor if it is smaller than current cost
-         *   - Add neighbor to unvisited set
-         * - Repeat until unvisited set is empty
-         *
-         * The algorithm has been modified such that it also keeps track the paths to each node.
-         * that is associated with the cost. There can be multiple paths to a node with the
-         * same cost - all are kept.
-         */
-
         var costs = nodes.ToDictionary(n => n, n => int.MaxValue);
         costs[start] = 0;
 
@@ -204,13 +156,13 @@ internal class Program
         return edges.ToLookup(e => e.From);
     }
 
-    static Vector2 FindTheThing(char[][] grid, char thing)
+    static Vector2 FindStart(char[][] grid)
     {
         for (int y = 0; y < grid.Length; y++)
         {
             for (int x = 0; x < grid[y].Length; x++)
             {
-                if (grid[y][x] == thing)
+                if (grid[y][x] == 'S')
                 {
                     return new Vector2(x, y);
                 }
