@@ -1,0 +1,27 @@
+﻿namespace Day11;
+
+internal class Program
+{
+    static void Main()
+    {
+        /**
+         * https://adventofcode.com/2024/day/11
+         * 
+         */
+
+        var input = File.ReadAllText("Data/sample.txt");
+
+        Console.WriteLine(Part1(input));
+        Console.WriteLine(Part2(input));
+    }
+
+    static string Part1(string input)
+    {
+        return input;
+    }
+
+    static string Part2(string input)
+    {
+        return input;
+    }
+}
